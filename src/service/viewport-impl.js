@@ -153,7 +153,6 @@ export class Viewport {
     this.boundThrottledScroll_ = this.throttledScroll_.bind(this);
 
     this.viewer_.onViewportEvent(this.updateOnViewportEvent_.bind(this));
-    this.binding_.updateViewerViewport(this.viewer_);
     this.binding_.updatePaddingTop(this.paddingTop_);
 
     this.binding_.onScroll(this.scroll_.bind(this));
@@ -581,7 +580,6 @@ export class Viewport {
    * @private
    */
   updateOnViewportEvent_(event) {
-    this.binding_.updateViewerViewport(this.viewer_);
     const paddingTop = event['paddingTop'];
     const duration = event['duration'] || 0;
     const curve = event['curve'];
@@ -775,12 +773,6 @@ export class ViewportBindingDef {
   onResize(unusedCallback) {}
 
   /**
-   * Updates binding with the new viewer's viewport info.
-   * @param {!./viewer-impl.Viewer} unusedViewer
-   */
-  updateViewerViewport(unusedViewer) {}
-
-  /**
    * Updates binding with the new padding.
    * @param {number} unusedPaddingTop
    */
@@ -893,15 +885,27 @@ export class ViewportBindingNatural_ {
     /** @const {function()} */
     this.boundResizeEventListener_ = () => this.resizeObservable_.fire();
 
-    // Override a user-supplied `body{overflow}` to be always visible. This
-    // style is set in runtime vs css to avoid conflicts with ios-embedded
-    // mode and fixed transfer layer.
     if (this.win.document.defaultView) {
       waitForBody(this.win.document, () => {
+        // Override a user-supplied `body{overflow}` to be always visible. This
+        // style is set in runtime vs css to avoid conflicts with ios-embedded
+        // mode and fixed transfer layer.
         this.win.document.body.style.overflow = 'visible';
         if (this.platform_.isIos() &&
             this.viewer_.getParam('webview') === '1') {
           setStyles(this.win.document.body, {
+            overflowX: 'hidden',
+            overflowY: 'visible',
+          });
+        }
+
+        // Require `body{position:relative}`.
+        // TODO(dvoytenko, #5660): cleanup "make-body-relative" experiment by
+        // merging this style into `amp.css`.
+        if (isExperimentOn(this.win, 'make-body-relative')) {
+          setStyles(this.win.document.body, {
+            display: 'block',
+            position: 'relative',
             overflowX: 'hidden',
             overflowY: 'visible',
           });
@@ -942,11 +946,6 @@ export class ViewportBindingNatural_ {
   /** @override */
   onResize(callback) {
     this.resizeObservable_.add(callback);
-  }
-
-  /** @override */
-  updateViewerViewport(unusedViewer) {
-    // Viewer's viewport is ignored since this window is fully accurate.
   }
 
   /** @override */
@@ -1209,11 +1208,6 @@ export class ViewportBindingNaturalIosEmbed_ {
   disconnect() {
     // Do nothing: ViewportBindingNaturalIosEmbed_ can only be used in the
     // single-doc mode.
-  }
-
-  /** @override */
-  updateViewerViewport(unusedViewer) {
-    // Viewer's viewport is ignored since this window is fully accurate.
   }
 
   /** @override */
@@ -1497,11 +1491,6 @@ export class ViewportBindingIosEmbedWrapper_ {
   /** @override */
   onResize(callback) {
     this.resizeObservable_.add(callback);
-  }
-
-  /** @override */
-  updateViewerViewport(unusedViewer) {
-    // Viewer's viewport is ignored since this window is fully accurate.
   }
 
   /** @override */

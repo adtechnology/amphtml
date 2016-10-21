@@ -306,13 +306,6 @@ describe('Viewport', () => {
     expect(showFixedLayerStub.callCount).to.equal(1);
   });
 
-  it('should call binding.updateViewerViewport', () => {
-    const bindingMock = sandbox.mock(binding);
-    bindingMock.expects('updateViewerViewport').once();
-    viewerViewportHandler({paddingTop: 19});
-    bindingMock.verify();
-  });
-
   it('should send scroll events', () => {
     // 0         ->    6     ->      12   ->      16         ->   18
     // scroll-10    scroll-20    scroll-30   2nd anim frame    scroll-40
@@ -950,6 +943,16 @@ describe('ViewportBindingNatural', () => {
     windowMock.verify();
     viewerMock.verify();
     sandbox.restore();
+    toggleExperiment(windowApi, 'make-body-relative', false);
+  });
+
+  it('should configure make-body-relative', () => {
+    toggleExperiment(windowApi, 'make-body-relative', true);
+    binding = new ViewportBindingNatural_(windowApi, viewer);
+    expect(documentBody.style.display).to.equal('block');
+    expect(documentBody.style.position).to.equal('relative');
+    expect(documentBody.style.overflowY).to.equal('visible');
+    expect(documentBody.style.overflowX).to.equal('hidden');
   });
 
   it('should setup overflow:visible on body', () => {
